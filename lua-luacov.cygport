@@ -1,0 +1,128 @@
+NAME="lua-luacov"
+VERSION=0.15.0
+RELEASE=1
+CATEGORY="Lua"
+SUMMARY="Coverage analysis tool for Lua scripts"
+DESCRIPTION="\
+LuaCov is a simple coverage analysis tool for Lua scripts.
+When a Lua script is run with the luacov module, it
+generates a stats file. The luacov command-line script then
+processes this file generating a report indicating which code
+paths were not traversed, which is useful for verifying the
+effectiveness of a test suite.
+"
+HOMEPAGE="https://github.com/keplerproject/luacov/"
+
+GIT_REPO="https://github.com/keplerproject/luacov"
+declare -A GIT_DATEHASH_BY_NAME=(
+  # git log --date=iso-strict --format='%cd/%H' -1
+  [0.15.0]=2021-02-15T18:47:58-03:00/v0.15.0
+)
+REV_HASH="${GIT_DATEHASH_BY_NAME[${VERSION}]#*/}"
+REV_DATE="${GIT_DATEHASH_BY_NAME[${VERSION}]%/*}"
+REV_DATE_SHORT="${REV_DATE%%T*}"
+GIT_BASENAME="${GIT_REPO##*/}"
+SRC_URI="${GIT_REPO}/archive/${REV_HASH}/${GIT_BASENAME}-${VERSION}.tar.gz"
+SRC_DIR="${GIT_BASENAME}-${REV_HASH#v}"
+
+ARCH="noarch"
+
+################################
+LUA_VERSIONS="5.3:5.4"
+LUA_PKG_NAME="${NAME#lua-}"
+source lua.experiment
+
+################################
+## Patch files
+################################
+# Patch filenames are in a default style of 'git format-patch'
+PATCH_URI=$(\
+  find -maxdepth 1 -type f -name '[0-9][0-9][0-9][0-9]-*.patch' \
+  | sort \
+)
+# Additional patches, if any
+PATCH_URI+="
+"
+
+################################
+## Requirements for building
+################################
+BUILD_REQUIRES="\
+  lua53-devel\
+  lua54-devel\
+"
+# TEST_REQUIRES="\
+# "
+
+################################
+ABI=0
+
+
+################################
+_CYGPORT_RESTRICT_postinst_doc_=1
+
+set_packages_lua() {
+  __add_pkg "lua${LUA_VERSION_CYG}-${LUA_PKG_NAME}"
+  __set_pkg_property . CONTENTS "
+    usr/share/doc/lua${LUA_VERSION_CYG}-${LUA_PKG_NAME}/
+    usr/*/lua/${LUA_VERSION}/
+  "
+  __set_pkg_property . REQUIRES "lua${LUA_VERSION_CYG}"
+
+  __append_pkg_property . CONTENTS "
+    usr/bin/*-${LUA_VERSION}
+    etc/p*/lua${LUA_VERSION_CYG}-${LUA_PKG_NAME}.sh
+  "
+}
+
+set_packages_lua_versions ${LUA_VERSIONS} ${LUA_PKG_NAME}
+
+################################
+src_compile_lua() {
+  mkdir -p ${B}/${LUA_VERSION}
+  cd  ${B}/${LUA_VERSION}
+
+  lndirs ${S} .
+
+  lua_fix_shebang_version_print ${LUA_VERSION} src/bin/luacov > src/bin/luacov-${LUA_VERSION}
+  chmod 755 src/bin/luacov-${LUA_VERSION}
+}
+
+################################
+src_install_lua() {
+  cd ${B}/${LUA_VERSION}
+
+  __doinsdir src/luacov ${LUA_SCRIPTDIR}/${LUA_PKG_NAME}
+  insinto ${LUA_SCRIPTDIR}
+  doins src/luacov.lua
+
+  dobin src/bin/luacov-${LUA_VERSION}
+
+  dodoc LICENSE *.md *.rockspec docs/
+
+  # postinstall/preremove scripts setting alternatives
+  local POSTINSTALL=./postinstall/lua${LUA_VERSION_CYG}-${LUA_PKG_NAME}.sh
+  local PREREMOVE=./preremove/lua${LUA_VERSION_CYG}-${LUA_PKG_NAME}.sh
+
+  mkdir -p ./postinstall
+  mkdir -p ./preremove
+
+  __script_postinstall_lua ${LUA_VERSION} ${LUA_PKG_NAME} <<_EOF > ${POSTINSTALL}
+--slave /usr/bin/luacov luacov /usr/bin/luacov-\${LUA_VERSION} \\
+_EOF
+  __script_preremove_lua ${LUA_VERSION} ${LUA_PKG_NAME} > ${PREREMOVE}
+
+  insinto /etc/postinstall
+  doins ${POSTINSTALL}
+  insinto /etc/preremove
+  doins ${PREREMOVE}
+}
+
+################################
+src_test_lua() {
+  cd ${B}/${LUA_VERSION}
+
+  echo "No test suite."
+}
+
+################################
