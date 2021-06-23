@@ -1,5 +1,5 @@
 category: Lua
-requires: bash lua51 lua54-cluacov lua54-luacov lua51
+requires: bash lua51 lua51-cluacov
 sdesc: "Coverage analysis tool for Lua scripts"
 ldesc: "LuaCov is a simple coverage analysis tool for Lua scripts.
 When a Lua script is run with the luacov module, it
