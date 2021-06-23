@@ -48,10 +48,10 @@ PATCH_URI+="
 ## Requirements for building
 ################################
 BUILD_REQUIRES="\
-  lua51-devel\
-  lua52-devel\
-  lua53-devel\
-  lua54-devel\
+  lua51-devel lua51-cluacov\
+  lua52-devel lua52-cluacov\
+  lua53-devel lua53-cluacov\
+  lua54-devel lua54-cluacov\
 "
 # TEST_REQUIRES="\
 # "
